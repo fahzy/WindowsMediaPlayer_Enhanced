@@ -22,7 +22,7 @@ public class LoginController {
 
         String username = usernameField.getText();
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("home.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
         root = loader.load();
 
         HomeController home_page = loader.getController();
