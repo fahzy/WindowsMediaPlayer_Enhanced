@@ -90,8 +90,8 @@
     <AnchorPane fx:id="scenePane" maxHeight="-1.0" maxWidth="-1.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="637.0" prefWidth="1100.0" VBox.vgrow="ALWAYS">
       <children>
             <ButtonBar layoutX="96.0" layoutY="304.0" prefHeight="40.0" prefWidth="200.0" />
-            <ProgressBar fx:id="songProgress" layoutX="217.0" layoutY="604.0" prefHeight="18.0" prefWidth="666.0" progress="0.0" />
-            <Label fx:id="songTitle" layoutY="545.0" prefHeight="95.0" prefWidth="190.0" text="Label">
+            <ProgressBar fx:id="songProgressBar" layoutX="217.0" layoutY="604.0" prefHeight="18.0" prefWidth="666.0" progress="0.0" />
+            <Label fx:id="songTitle" alignment="CENTER" layoutY="545.0" prefHeight="95.0" prefWidth="190.0" text="Label">
                <font>
                   <Font name="System Bold" size="18.0" />
                </font>
@@ -99,7 +99,7 @@
             <Slider fx:id="volumeSlider" layoutX="939.0" layoutY="606.0" />
             <ButtonBar layoutX="408.0" layoutY="553.0" prefHeight="40.0" prefWidth="284.0">
               <buttons>
-                  <Button fx:id="previousBtn" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#previousMedia" text="Prev" />
+                  <Button fx:id="previousBtn" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#prevMedia" text="Prev" />
                   <Button fx:id="playBtn" mnemonicParsing="false" onAction="#playpauseMedia" text="Play/Pause" />
                   <Button fx:id="nextBtn" mnemonicParsing="false" onAction="#nextMedia" text="Next" />
               </buttons>

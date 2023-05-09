@@ -26,7 +26,6 @@ public class LoginController {
         root = loader.load();
 
         HomeController home_page = loader.getController();
-        home_page.displayName(username);
 
         //root = FXMLLoader.load(getClass().getResource("Scene2.fxml"));
         stage = (Stage)((Node)event.getSource()).getScene().getWindow();
