@@ -1,5 +1,7 @@
 package com.fahzycoding.windowsmediaplayer_enhanced;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -32,7 +34,7 @@ public class HomeController implements Initializable {
     @FXML
     private Slider volumeSlider;
     @FXML
-    private ProgressBar songProgress;
+    private ProgressBar songProgressBar;
     private Media media;
     private MediaPlayer mediaPlayer;
     private File directory;
@@ -59,6 +61,13 @@ public class HomeController implements Initializable {
         media = new Media(songs.get(songNumber).toURI().toString());
         mediaPlayer = new MediaPlayer(media);
         songTitle.setText(songs.get(songNumber).getName());
+        songProgressBar.setStyle("-fx-accent: #cccccc");
+        volumeSlider.valueProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number number, Number t1) {
+                mediaPlayer.setVolume(volumeSlider.getValue() * 0.01);
+            }
+        });
     }
 
     public void logout(ActionEvent event){
@@ -76,13 +85,16 @@ public class HomeController implements Initializable {
         }
     }
      public void playpauseMedia(){
+        mediaPlayer.setVolume(volumeSlider.getValue());
         if(!running) {
+            beginTimer();
             mediaPlayer.play();
-            running = true;
+//            running = true;
         }
         else {
+            cancelTimer();
             mediaPlayer.pause();
-            running = false;
+//            running = false;
         }
      }
 
@@ -92,13 +104,16 @@ public class HomeController implements Initializable {
             else{songNumber = songs.size() - 1; }
 
                 mediaPlayer.stop();
-                running = false;
+                if (running){ timer.cancel();}
                 media = new Media(songs.get(songNumber).toURI().toString());
                 mediaPlayer = new MediaPlayer(media);
                 songTitle.setText(songs.get(songNumber).getName());
                 mediaPlayer.play();
                 running = true;
-        }else mediaPlayer.seek(Duration.seconds(0) );
+        }else {
+            songProgressBar.setProgress(0);
+            mediaPlayer.seek(Duration.seconds(0) );
+        }
      }
 
      public void nextMedia(){
@@ -106,6 +121,7 @@ public class HomeController implements Initializable {
         else{songNumber = 0; }
 
          mediaPlayer.stop();
+         if (running){ timer.cancel();}
          running = false;
          media = new Media(songs.get(songNumber).toURI().toString());
          mediaPlayer = new MediaPlayer(media);
@@ -115,10 +131,25 @@ public class HomeController implements Initializable {
      }
 
      public void beginTimer(){
+        timer = new Timer();
+        task = new TimerTask(){
+            public void run(){
+                running = true;
+                double current = mediaPlayer.getCurrentTime().toSeconds();
+                double end = media.getDuration().toSeconds();
+//                System.out.println(current/end);
+                songProgressBar.setProgress(current/end);
+                if(current/end == 1){
+                    cancelTimer();
+                }
+            }
+        };
 
+        timer.scheduleAtFixedRate(task, 1000, 1000);
      }
 
      public void cancelTimer(){
-
+        running = false;
+        timer.cancel();
      }
 }

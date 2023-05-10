@@ -96,7 +96,7 @@
                   <Font name="System Bold" size="18.0" />
                </font>
             </Label>
-            <Slider fx:id="volumeSlider" layoutX="939.0" layoutY="606.0" />
+            <Slider fx:id="volumeSlider" layoutX="939.0" layoutY="606.0" value="50.0" />
             <ButtonBar layoutX="408.0" layoutY="553.0" prefHeight="40.0" prefWidth="284.0">
               <buttons>
                   <Button fx:id="previousBtn" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#prevMedia" text="Prev" />
