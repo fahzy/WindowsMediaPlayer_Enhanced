@@ -42,10 +42,12 @@
 <?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="400.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fahzycoding.windowsmediaplayer_enhanced.HomeController">
+<VBox prefHeight="858.0" prefWidth="1440.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fahzycoding.windowsmediaplayer_enhanced.HomeController">
   <children>
     <MenuBar minHeight="-Infinity" minWidth="-Infinity" prefWidth="708.0" VBox.vgrow="NEVER">
       <menus>
@@ -87,24 +89,38 @@
         </Menu>
       </menus>
     </MenuBar>
-    <AnchorPane fx:id="scenePane" maxHeight="-1.0" maxWidth="-1.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="637.0" prefWidth="1100.0" VBox.vgrow="ALWAYS">
-      <children>
-            <ButtonBar layoutX="96.0" layoutY="304.0" prefHeight="40.0" prefWidth="200.0" />
-            <ProgressBar fx:id="songProgressBar" layoutX="217.0" layoutY="604.0" prefHeight="18.0" prefWidth="666.0" progress="0.0" />
-            <Label fx:id="songTitle" alignment="CENTER" layoutY="545.0" prefHeight="95.0" prefWidth="190.0" text="Label">
-               <font>
-                  <Font name="System Bold" size="18.0" />
-               </font>
-            </Label>
-            <Slider fx:id="volumeSlider" layoutX="939.0" layoutY="606.0" value="50.0" />
-            <ButtonBar layoutX="408.0" layoutY="553.0" prefHeight="40.0" prefWidth="284.0">
-              <buttons>
-                  <Button fx:id="previousBtn" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#prevMedia" text="Prev" />
-                  <Button fx:id="playBtn" mnemonicParsing="false" onAction="#playpauseMedia" text="Play/Pause" />
-                  <Button fx:id="nextBtn" mnemonicParsing="false" onAction="#nextMedia" text="Next" />
-              </buttons>
-            </ButtonBar>
-      </children>
+    <AnchorPane fx:id="scenePane" maxHeight="-1.0" maxWidth="-1.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="830.0" prefWidth="1414.0">
+         <children>
+            <Pane layoutX="-3.0" layoutY="734.0" prefHeight="90.0" prefWidth="1443.0">
+               <children>
+                  <Label fx:id="songTitle" alignment="CENTER" layoutX="709.0" layoutY="17.0" prefHeight="30.0" prefWidth="190.0" text="Label">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Label>
+                  <HBox alignment="BOTTOM_CENTER" layoutX="405.0" layoutY="32.0" prefHeight="45.0" prefWidth="800.0">
+                     <children>
+                        <Label fx:id="currentDuration" text="--:--" />
+                        <ProgressBar fx:id="songProgressBar" prefHeight="18.0" prefWidth="666.0" progress="0.0" />
+                        <Label fx:id="endDuration" text="--:--" />
+                     </children>
+                  </HBox>
+                  <ButtonBar layoutX="39.0" layoutY="9.0" prefHeight="68.0" prefWidth="234.0">
+                    <buttons>
+                        <Button fx:id="previousBtn" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#prevMedia" text="Prev" />
+                        <Button fx:id="playBtn" mnemonicParsing="false" onAction="#playpauseMedia" text="Play/Pause" />
+                        <Button fx:id="nextBtn" mnemonicParsing="false" onAction="#nextMedia" text="Next" />
+                    </buttons>
+                  </ButtonBar>
+                  <Pane layoutX="1206.0" layoutY="2.0" prefHeight="90.0" prefWidth="213.0">
+                     <children>
+                        <Slider fx:id="volumeSlider" layoutX="69.0" layoutY="41.0" value="50.0" />
+                        <Button fx:id="muteBtn" layoutX="11.0" layoutY="36.0" mnemonicParsing="false" onAction="#muteMedia" text="Mute" />
+                     </children>
+                  </Pane>
+               </children>
+            </Pane>
+         </children>
     </AnchorPane>
   </children>
 </VBox>
