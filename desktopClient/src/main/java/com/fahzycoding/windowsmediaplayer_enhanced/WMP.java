@@ -25,7 +25,7 @@ public class WMP extends Application {
         Parent root = FXMLLoader.load(getClass().getResource("/views/login_page.fxml"));
         Scene scene = new Scene(root);
 
-        Image icon = new Image("C:\\Users\\lenovo\\Documents\\University\\Honours\\COS730\\A3\\WindowsMediaPlayer_Enhanced\\desktopClient\\src\\assets\\images\\WMP_logo.png");
+        Image icon = new Image(getClass().getResource("/images/WMP_logo.png").openStream());
         stage.getIcons().add(icon);
         stage.setTitle("Windows Media Player (Enhanced)");
 //        stage.setFullScreen(true);

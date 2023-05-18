@@ -37,3 +37,4 @@ build/
 ### Mac OS ###
 .DS_Store
 /desktopClient/src/main/resources/music/
+/desktopClient/src/main/resources/images/
