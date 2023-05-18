@@ -3,6 +3,7 @@ package com.fahzycoding.windowsmediaplayer_enhanced;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.MapChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -13,6 +14,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
@@ -50,6 +52,8 @@ public class HomeController implements Initializable {
     private ProgressBar songProgressBar;
     @FXML
     private MediaView visualizer;
+    @FXML
+    private ImageView imageView;
     private Media media;
     private MediaPlayer mediaPlayer;
     private File directory;
@@ -66,6 +70,7 @@ public class HomeController implements Initializable {
         songs = new ArrayList<File>();
         directory = new File("./desktopClient/src/main/resources/music");
         files = directory.listFiles();
+//        imageView = new ImageView();
 
         if (files != null){
             for(File file: files){
@@ -163,7 +168,7 @@ public class HomeController implements Initializable {
                 mediaExecution(media);
                 songTitle.setText(songs.get(songNumber).getName());
                 mediaPlayer.play();
-                System.out.println(media.getMetadata().toString());
+//                System.out.println(media.getMetadata().toString());
                 beginTimer();
         }else {
             songProgressBar.setProgress(0);
@@ -225,7 +230,30 @@ public class HomeController implements Initializable {
 
      private void mediaExecution(Media media){
          mediaPlayer = new MediaPlayer(media);
-         visualizer.setMediaPlayer((mediaPlayer));
+         media.getMetadata().addListener(new MapChangeListener<String, Object>() {
+             @Override
+             public void onChanged(Change<? extends String, ? extends Object> ch) {
+                 if (ch.wasAdded()) {
+                     handleMetadata(ch.getKey(), ch.getValueAdded());
+                 }
+             }
+
+             private void handleMetadata(String key, Object value) {
+                 if (key.equals("album")) {
+                     System.out.println(value.toString());
+                 } else if (key.equals("artist")) {
+                     System.out.println(value.toString());
+                 } if (key.equals("title")) {
+                     System.out.println(value.toString());
+                 } if (key.equals("year")) {
+                     System.out.println(value.toString());
+                 } if (key.equals("image")) {
+
+                     imageView.setImage((Image)value);
+                 }
+             }
+         });
+//         visualizer.setMediaPlayer((mediaPlayer));
      }
 
 }
