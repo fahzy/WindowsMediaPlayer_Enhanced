@@ -76,11 +76,11 @@ public class HomeController implements Initializable {
         media = new Media(songs.get(songNumber).toURI().toString());
 
         // Load first song
-        mediaPlayer = new MediaPlayer(media);
+        mediaExecution(media);
         songTitle.setText(songs.get(songNumber).getName());
         songProgressBar.setStyle("-fx-accent: #cccccc");
-        visualizer = new MediaView(mediaPlayer);
         scenePane.setCenter(visualizer);
+
 
         // Set the volume property
         volumeSlider.valueProperty().addListener(new ChangeListener<Number>() {
@@ -143,11 +143,11 @@ public class HomeController implements Initializable {
         if(!running) {
             mediaPlayer.play();
             beginTimer();
-//            running = true;
+            running = true;
         }
         else {
-            cancelTimer();
             mediaPlayer.pause();
+            cancelTimer();
 //            running = false;
         }
      }
@@ -160,7 +160,7 @@ public class HomeController implements Initializable {
                 mediaPlayer.stop();
                 if (running){ timer.cancel();}
                 media = new Media(songs.get(songNumber).toURI().toString());
-                mediaPlayer = new MediaPlayer(media);
+                mediaExecution(media);
                 songTitle.setText(songs.get(songNumber).getName());
                 mediaPlayer.play();
                 System.out.println(media.getMetadata().toString());
@@ -179,7 +179,7 @@ public class HomeController implements Initializable {
          if (running){ timer.cancel();}
          running = false;
          media = new Media(songs.get(songNumber).toURI().toString());
-         mediaPlayer = new MediaPlayer(media);
+         mediaExecution(media);
          songTitle.setText(songs.get(songNumber).getName());
          mediaPlayer.play();
          System.out.println(media.getMetadata().toString());
@@ -223,5 +223,9 @@ public class HomeController implements Initializable {
 //         mediaPlayer.setVolume(volumeSlider.getValue() * 0.01);
      }
 
+     private void mediaExecution(Media media){
+         mediaPlayer = new MediaPlayer(media);
+         visualizer.setMediaPlayer((mediaPlayer));
+     }
 
 }

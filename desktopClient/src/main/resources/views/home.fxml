@@ -32,6 +32,7 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
+<?import javafx.geometry.Insets?>
 <?import javafx.geometry.Rectangle2D?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ButtonBar?>
@@ -48,7 +49,6 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.media.MediaView?>
 <?import javafx.scene.text.Font?>
-
 
 <BorderPane fx:id="scenePane" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fahzycoding.windowsmediaplayer_enhanced.HomeController">
    <top>
@@ -125,13 +125,16 @@
       </Pane>
    </bottom>
    <center>
-      <MediaView fx:id="visualizer" fitHeight="800.0" fitWidth="1400.0" nodeOrientation="INHERIT" BorderPane.alignment="CENTER">
+      <MediaView fx:id="visualizer" blendMode="DARKEN" fitHeight="800.0" fitWidth="1400.0" nodeOrientation="INHERIT" BorderPane.alignment="CENTER">
          <effect>
             <Glow />
          </effect>
          <viewport>
-            <Rectangle2D height="720.0" width="1080.0" />
+            <Rectangle2D />
          </viewport>
+         <BorderPane.margin>
+            <Insets />
+         </BorderPane.margin>
       </MediaView>
    </center>
 </BorderPane>
