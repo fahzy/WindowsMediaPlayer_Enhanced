@@ -12,11 +12,15 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -29,18 +33,23 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static java.lang.Math.floor;
+//import static jdk.internal.logger.DefaultLoggerFinder.SharedLoggers.system;
 
 public class HomeController implements Initializable {
     @FXML
     Label songTitle, currentDuration, endDuration;
     @FXML
-    private AnchorPane scenePane;
+    private BorderPane views6;
+    @FXML
+    private BorderPane scenePane;
     @FXML
     private Button playBtn, nextBtn, previousBtn;
     @FXML
     private Slider volumeSlider;
     @FXML
     private ProgressBar songProgressBar;
+    @FXML
+    private MediaView visualizer;
     private Media media;
     private MediaPlayer mediaPlayer;
     private File directory;
@@ -65,10 +74,15 @@ public class HomeController implements Initializable {
             }
         }
         media = new Media(songs.get(songNumber).toURI().toString());
-//        System.out.println(media.getMetadata().toString());
-        mediaPlayer = new MediaPlayer(media);
+
+        // Load first song
+        mediaExecution(media);
         songTitle.setText(songs.get(songNumber).getName());
         songProgressBar.setStyle("-fx-accent: #cccccc");
+        scenePane.setCenter(visualizer);
+
+
+        // Set the volume property
         volumeSlider.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observableValue, Number number, Number t1) {
@@ -76,12 +90,13 @@ public class HomeController implements Initializable {
             }
         });
 
-//        songProgressBar.setMaxWidth(Double.MAX_VALUE);
+//      Media Seeking functionality of the media player
         songProgressBar.setOnMousePressed(event -> {
             double position = event.getX() / songProgressBar.getWidth();
             mediaPlayer.seek(mediaPlayer.getMedia().getDuration().multiply(position));
         });
 
+        // Duration appearing in media player
         mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
             @Override
             public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
@@ -92,18 +107,35 @@ public class HomeController implements Initializable {
         });
     }
 
-    public void logout(ActionEvent event){
+    public void logout(ActionEvent event) throws IOException {
 
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Logout");
         alert.setHeaderText(("You are about to logout!"));
         alert.setContentText("Do you want to save before exiting?: ");
 
-        if(alert.showAndWait().get() == ButtonType.OK) {
 
+        if(alert.showAndWait().get() == ButtonType.OK) {
+            // Logging out of the main application
             stage = (Stage) scenePane.getScene().getWindow();
             System.out.println("You successfully logged out");
+            // TODO: Remove credentials from the application
+            // Closes the main application
             stage.close();
+
+            // Going back to the login/sign up page
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/login_page.fxml"));
+            Parent root = loader.load();
+            // Creating a new stage for the login page
+            Stage newStage = new Stage();
+            Scene scene = new Scene(root);
+            // Creating an icon for the window (appears in the top left and the icon in the task bar
+            Image icon = new Image(getClass().getResource("/images/WMP_logo.png").openStream());
+            stage.getIcons().add(icon);
+            stage.setTitle("Windows Media Player (Enhanced)");
+
+            newStage.setScene(scene);
+            newStage.show();
         }
     }
      public void playpauseMedia(){
@@ -111,11 +143,11 @@ public class HomeController implements Initializable {
         if(!running) {
             mediaPlayer.play();
             beginTimer();
-//            running = true;
+            running = true;
         }
         else {
-            cancelTimer();
             mediaPlayer.pause();
+            cancelTimer();
 //            running = false;
         }
      }
@@ -128,9 +160,10 @@ public class HomeController implements Initializable {
                 mediaPlayer.stop();
                 if (running){ timer.cancel();}
                 media = new Media(songs.get(songNumber).toURI().toString());
-                mediaPlayer = new MediaPlayer(media);
+                mediaExecution(media);
                 songTitle.setText(songs.get(songNumber).getName());
                 mediaPlayer.play();
+                System.out.println(media.getMetadata().toString());
                 beginTimer();
         }else {
             songProgressBar.setProgress(0);
@@ -146,9 +179,10 @@ public class HomeController implements Initializable {
          if (running){ timer.cancel();}
          running = false;
          media = new Media(songs.get(songNumber).toURI().toString());
-         mediaPlayer = new MediaPlayer(media);
+         mediaExecution(media);
          songTitle.setText(songs.get(songNumber).getName());
          mediaPlayer.play();
+         System.out.println(media.getMetadata().toString());
          beginTimer();
      }
 
@@ -189,5 +223,9 @@ public class HomeController implements Initializable {
 //         mediaPlayer.setVolume(volumeSlider.getValue() * 0.01);
      }
 
+     private void mediaExecution(Media media){
+         mediaPlayer = new MediaPlayer(media);
+         visualizer.setMediaPlayer((mediaPlayer));
+     }
 
 }
