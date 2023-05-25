@@ -10,22 +10,44 @@ mongoose.connect(MONGOURL, {
     useUnifiedTopology: true,
 });
 
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => {
+    console.log('Connected to MongoDB');
+});
+
 // Define the user schema
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
-    authenticationKeys: [{ type: String }],
+    role: { type: String, required: true, enum: ['adminRole', 'userRole', 'guestRole'] },
+    authenticationKey: { type: String },
     fileCount: { type: Number, default: 0 },
     deviceCount: { type: Number, default: 0 },
+    iamUser: String,
+    iamAccessKey: String,
+    iamSecretKey: String,
 });
 
 // Define the media schema
 const mediaSchema = new mongoose.Schema({
-    username: { type: String, required: true },
-    mediaName: { type: String, required: true },
-    mediaUrl: { type: String, required: true },
-    metadata: { type: Object },
-    playCount: { type: Number, default: 0 },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    },
+    name: String,
+    url: String,
+    metadata: {
+        type: Map,
+        of: String,
+    },
+    playCount: Number,
+    sharedWith: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+    ],
 });
 
 // Create the models/collections
@@ -35,6 +57,12 @@ const Media = mongoose.model('Media', mediaSchema);
 // Create the required collections (if they don't exist)
 User.createCollection();
 Media.createCollection();
+
+module.exports = {
+    db,
+    User,
+    Media
+}
 
 
 

@@ -1,260 +1,236 @@
 const express = require('express');
+const {AWS, iam, s3} =require('./aws')
+const {db, User, Media} = require('./schemas')
+const multer = require('multer');
+const jwt = require('jsonwebtoken');
+const configs = require("./config");
+
+const BUCKET = configs.AWS.bucketName
+const JWT_SECRET_KEY = configs.jwt_secretKey
+
+// Configure Express app
 const app = express();
-const bodyParser = require('body-parser');
-const { MongoClient, ObjectId } = require('mongodb');
-const crypto = require('crypto');
+const upload = multer({ dest: 'uploads/' });
 
-// Apply middleware for parsing request bodies
-app.use(bodyParser.urlencoded({ extended: true }));
+// Middleware to authenticate requests
+const authenticate = (req, res, next) => {
+    const token = req.headers.authorization;
 
-// MongoDB connection URL
-const MONGO_URL = 'mongodb://localhost:27017';
+    if (!token) {
+        return res.status(401).json({ message: 'Authentication token not provided' });
+    }
 
-// MongoDB database name
-const DB_NAME = 'sessiondb';
+    try {
+        const decodedToken = jwt.verify(token, JWT_SECRET_KEY);
+        req.user = decodedToken.user;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Invalid authentication token' });
+    }
+};
 
-// Collection name for storing user sessions
-const SESSION_COLLECTION = 'sessions';
+// Middleware to authorize user
+function authorize(allowedRoles) {
+    return (req, res, next) => {
+        const { role } = req.user;
+        if (!allowedRoles.includes(role)) {
+            return res.status(403).json({ message: 'Access Denied' });
+        }
+        next();
+    };
+}
 
-// Session token expiration time (30 days in milliseconds)
-const SESSION_EXPIRATION_TIME = 30 * 24 * 60 * 60 * 1000;
+// Register endpoint
+// User registration endpoint
+app.post('/register', async (req, res) => {
+    try {
+        const { username, password, role } = req.body;
 
-// MongoDB client
-let mongoClient;
+        // Check if the username already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username already exists' });
+        }
 
-// Connect to MongoDB
-MongoClient.connect(MONGO_URL, { useUnifiedTopology: true })
-    .then((client) => {
-        console.log('Connected to MongoDB');
-        mongoClient = client;
-    })
-    .catch((err) => {
-        console.error('Failed to connect to MongoDB:', err);
-        process.exit(1);
-    });
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-// Register user endpoint
-app.post('/register', (req, res) => {
-    const { username, password } = req.body;
+        // Create the user in IAM
+        const createUserParams = {
+            UserName: username,
+            Tags: [
+                { Key: 'WMP', Value: 'app_user' },
+            ],
+        };
+        let user;
+        try {
+            user = await iam.createUser(createUserParams).promise();
+        } catch (error) {
+            console.error('Error creating IAM user:', error);
+            return res.status(500).json({ message: 'Error creating user' });
+        }
 
-    // Hash the password before storing it in the database
-    const hashedPassword = hashPassword(password);
+        // Save the user details to MongoDB
+        const newUser = new User({ username, hashedPassword, iamUsername: user.UserName, role });
+        try {
+            await newUser.save();
+        } catch (error) {
+            console.error('Error saving user to MongoDB:', error);
+            // Rollback the IAM user creation if MongoDB save fails
+            try {
+                await iam.deleteUser({ UserName: user.UserName }).promise();
+            } catch (error) {
+                console.error('Error deleting IAM user:', error);
+            }
+            return res.status(500).json({ message: 'Error registering user' });
+        }
 
-    // Store the username and hashed password in the database
-    storeUserCredentials(username, hashedPassword)
-        .then(() => {
-            res.sendStatus(200);
-        })
-        .catch((err) => {
-            console.error('Failed to store user credentials:', err);
-            res.sendStatus(500);
-        });
+        // Generate a JWT token
+        const token = jwt.sign({ user: { id: newUser._id, username: newUser.username, role: newUser.role } }, JWT_SECRET_KEY);
+
+        return res.status(200).json({ token });
+    } catch (error) {
+        console.error('Error registering user:', error);
+        return res.status(500).json({ message: 'Error registering user' });
+    }
 });
 
 // Login endpoint
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
+app.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
 
-    // Retrieve the hashed password from the database for the provided username
-    retrieveUserCredentials(username)
-        .then((hashedPassword) => {
-            // Verify the provided password against the stored hashed password
-            if (!verifyPassword(password, hashedPassword)) {
-                return res.sendStatus(401);
-            }
+        // Find the user by username
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid username or password' });
+        }
 
-            // Generate a new session token
-            const sessionToken = generateSessionToken();
+        // Check if the password is correct
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid username or password' });
+        }
 
-            // Store the session token in MongoDB with an expiration timestamp
-            storeSessionToken(username, sessionToken)
-                .then(() => {
-                    res.status(200).json({ sessionToken });
-                })
-                .catch((err) => {
-                    console.error('Failed to store session token:', err);
-                    res.sendStatus(500);
-                });
-        })
-        .catch((err) => {
-            console.error('Failed to retrieve user credentials:', err);
-            res.sendStatus(500);
-        });
+        // Generate a JWT token
+        const token = jwt.sign({ user: { id: user._id, username: user.username, role: user.role } }, JWT_SECRET);
+
+        return res.status(200).json({ token });
+    } catch (error) {
+        console.error('Error logging in user:', error);
+        return res.status(500).json({ message: 'Error logging in user' });
+    }
 });
 
-// Middleware to verify the session token
-function verifySessionToken(req, res, next) {
-    const sessionToken = req.headers.authorization;
+// Upload media endpoint
+app.post('/upload', authenticate, authorize(['admin', 'user']), upload.single('file'), async (req, res) => {
+    try {
+        const { filename, path, mimetype } = req.file;
 
-    // Retrieve the session information from MongoDB
-    getSessionInfo(sessionToken)
-        .then((sessionInfo) => {
-            if (!sessionInfo || sessionInfo.expired) {
-                return res.sendStatus(401);
-            }
+        // Upload the file to S3 bucket
+        const uploadParams = {
+            Bucket: 'your-bucket-name',
+            Key: filename,
+            Body: fs.createReadStream(path),
+            ContentType: mimetype,
+        };
+        await s3.upload(uploadParams).promise();
 
-            // Add the session information to the request object
-            req.sessionInfo = sessionInfo;
-
-            next();
-        })
-        .catch((err) => {
-            console.error('Failed to retrieve session information:', err);
-            res.sendStatus(500);
+        // Save the media details to MongoDB
+        const media = new Media({
+            userId: req.user.id,
+            filename,
+            url: `https://your-bucket-name.s3.amazonaws.com/${filename}`,
+            mimetype,
+            metadata: req.body.metadata,
         });
-}
+        await media.save();
 
-// Backup media endpoint
-app.post('/backup', verifySessionToken, (req, res) => {
-    // Only authenticated and authorized users can access this endpoint
-    const { username } = req.sessionInfo;
-    const { fileName, fileData, fileHash } = req.body;
+        // Remove the temporary file
+        fs.unlinkSync(path);
 
-    // Store the media file in AWS S3 bucket and update the media metadata in MongoDB
-    storeMediaFile(username, fileName, fileData, fileHash)
-        .then(() => {
-            res.sendStatus(200);
-        })
-        .catch((err) => {
-            console.error('Failed to store media file:', err);
-            res.sendStatus(500);
-        });
+        return res.status(200).json({ message: 'File uploaded successfully' });
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        return res.status(500).json({ message: 'Error uploading file' });
+    }
 });
 
 // Retrieve media endpoint
-app.get('/media/:id', verifySessionToken, (req, res) => {
-    // Only authenticated and authorized users can access this endpoint
-    const { username } = req.sessionInfo;
-    const mediaId = req.params.id;
+app.get('/media', authenticate, authorize(['admin', 'user']), async (req, res) => {
+    try {
+        // Retrieve all media for the authenticated user
+        const media = await Media.find({ userId: req.user.id });
 
-    // Retrieve the media file from AWS S3 bucket and send it as a response
-    retrieveMediaFile(username, mediaId)
-        .then((mediaData) => {
-            res.status(200).send(mediaData);
-        })
-        .catch((err) => {
-            console.error('Failed to retrieve media file:', err);
-            res.sendStatus(500);
-        });
+        return res.status(200).json(media);
+    } catch (error) {
+        console.error('Error retrieving media:', error);
+        return res.status(500).json({ message: 'Error retrieving media' });
+    }
+});
+
+// Download media endpoint
+app.get('/media/:id', authenticate, authorize(['admin', 'user']), async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find the media by ID
+        const media = await Media.findById(id);
+        if (!media) {
+            return res.status(404).json({ message: 'Media not found' });
+        }
+
+        // Check if the authenticated user has access to the media
+        if (media.userId.toString() !== req.user.id.toString()) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        // Download the media from S3 bucket
+        const downloadParams = {
+            Bucket: 'your-bucket-name',
+            Key: media.filename,
+        };
+        const fileStream = s3.getObject(downloadParams).createReadStream();
+        res.attachment(media.filename);
+        fileStream.pipe(res);
+    } catch (error) {
+        console.error('Error downloading media:', error);
+        return res.status(500).json({ message: 'Error downloading media' });
+    }
 });
 
 // Delete media endpoint
-app.delete('/media/:id', verifySessionToken, (req, res) => {
-    // Only authenticated and authorized users can access this endpoint
-    const { username } = req.sessionInfo;
-    const mediaId = req.params.id;
+app.delete('/media/:id', authenticate, authorize(['admin', 'user']), async (req, res) => {
+    try {
+        const { id } = req.params;
 
-    // Delete the media file from AWS S3 bucket and update the media metadata in MongoDB
-    deleteMediaFile(username, mediaId)
-        .then(() => {
-            res.sendStatus(200);
-        })
-        .catch((err) => {
-            console.error('Failed to delete media file:', err);
-            res.sendStatus(500);
-        });
+        // Find the media by ID
+        const media = await Media.findById(id);
+        if (!media) {
+            return res.status(404).json({ message: 'Media not found' });
+        }
+
+        // Check if the authenticated user has access to the media
+        if (media.userId.toString() !== req.user.id.toString()) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        // Delete the media from S3 bucket
+        const deleteParams = {
+            Bucket: 'your-bucket-name',
+            Key: media.filename,
+        };
+        await s3.deleteObject(deleteParams).promise();
+
+        // Delete the media from MongoDB
+        await Media.findByIdAndDelete(id);
+
+        return res.status(200).json({ message: 'Media deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting media:', error);
+        return res.status(500).json({ message: 'Error deleting media' });
+    }
 });
-
-// Generate a random session token
-function generateSessionToken() {
-    return crypto.randomBytes(64).toString('hex');
-}
-
-// Hash a password using a secure cryptographic algorithm
-function hashPassword(password) {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    return `${salt}:${hash}`;
-}
-
-// Verify a password against a stored hashed password
-function verifyPassword(password, hashedPassword) {
-    const [salt, hash] = hashedPassword.split(':');
-    const verifyHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    return hash === verifyHash;
-}
-
-// Store user credentials in MongoDB
-function storeUserCredentials(username, hashedPassword) {
-    return mongoClient.db(DB_NAME).collection('users').insertOne({ username, password: hashedPassword });
-}
-
-// Retrieve user credentials from MongoDB
-function retrieveUserCredentials(username) {
-    return mongoClient.db(DB_NAME).collection('users').findOne({ username })
-        .then((user) => {
-            return user ? user.password : null;
-        });
-}
-
-// Store the session token in MongoDB with an expiration timestamp
-function storeSessionToken(username, sessionToken) {
-    const sessionExpiration = new Date(Date.now() + SESSION_EXPIRATION_TIME);
-    const sessionInfo = { sessionToken, expiration: sessionExpiration };
-
-    return mongoClient.db(DB_NAME).collection(SESSION_COLLECTION).updateOne(
-        { username },
-        { $push: { sessionTokens: sessionInfo } },
-        { upsert: true }
-    );
-}
-
-// Retrieve session information from MongoDB
-function getSessionInfo(sessionToken) {
-    return mongoClient.db(DB_NAME).collection(SESSION_COLLECTION).findOne(
-        { 'sessionTokens.sessionToken': sessionToken },
-        { projection: { sessionTokens: { $elemMatch: { sessionToken } } } }
-    )
-        .then((user) => {
-            if (user && user.sessionTokens.length > 0) {
-                const sessionInfo = user.sessionTokens[0];
-                if (!sessionInfo.expired && sessionInfo.expiration > new Date()) {
-                    return { username: user.username, sessionToken, expiration: sessionInfo.expiration };
-                }
-            }
-            return null;
-        });
-}
-
-// Store the media file in AWS S3 bucket and update the media metadata in MongoDB
-function storeMediaFile(username, fileName, fileData, fileHash) {
-    // Code for storing media file in AWS S3 bucket
-    // ...
-
-    const mediaMetadata = {
-        username,
-        fileName,
-        fileHash,
-        // Additional metadata fields
-        // ...
-    };
-
-    return mongoClient.db(DB_NAME).collection('media').insertOne(mediaMetadata);
-}
-
-// Retrieve the media file from AWS S3 bucket
-function retrieveMediaFile(username, mediaId) {
-    // Code for retrieving media file from AWS S3 bucket
-    // ...
-
-    // Simulated media data for demonstration purposes
-    const mediaData = {
-        mediaId,
-        mediaUrl: `https://s3.example.com/bucket/${mediaId}`,
-        // Additional metadata fields
-        // ...
-    };
-
-    return Promise.resolve(mediaData);
-}
-
-// Delete the media file from AWS S3 bucket and update the media metadata in MongoDB
-function deleteMediaFile(username, mediaId) {
-    // Code for deleting media file from AWS S3 bucket
-    // ...
-
-    return mongoClient.db(DB_NAME).collection('media').deleteOne({ username, mediaId });
-}
 
 // Start the server
 app.listen(3000, () => {
