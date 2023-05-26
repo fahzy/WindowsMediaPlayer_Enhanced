@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const configs = require('./config');
 
 const MONGOURL = configs.databaseUrl;
-const dbName = 'your-database';
 
 // Connect to MongoDB
 mongoose.connect(MONGOURL, {
@@ -20,7 +19,7 @@ db.once('open', () => {
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
-    role: { type: String, required: true, enum: ['adminRole', 'userRole', 'guestRole'] },
+    role: { type: String, required: true, enum: ['adminRole', 'wmpUsers', 'guestRole'] },
     authenticationKey: { type: String },
     fileCount: { type: Number, default: 0 },
     deviceCount: { type: Number, default: 0 },

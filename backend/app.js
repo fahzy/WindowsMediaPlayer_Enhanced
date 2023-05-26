@@ -1,16 +1,55 @@
 const express = require('express');
-const {AWS, iam, s3} =require('./aws')
-const {db, User, Media} = require('./schemas')
+const AWS = require('aws-sdk');
+const {User, Media, } = require('./schemas')
 const multer = require('multer');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt')
+const fs = require('fs')
 const configs = require("./config");
+const bodyParser = require('body-parser')
 
 const BUCKET = configs.AWS.bucketName
 const JWT_SECRET_KEY = configs.jwt_secretKey
+const REGION = configs.AWS.region
+const ACCESS_KEY = configs.AWS.accessKeyId
+const SECRET_KEY = configs.AWS.secretAccessKey
 
+process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = '1';
+
+// Configure AWS SDK
+AWS.config.update({
+    region: REGION,
+    accessKeyId: ACCESS_KEY,
+    secretAccessKey: SECRET_KEY
+});
 // Configure Express app
 const app = express();
 const upload = multer({ dest: 'uploads/' });
+const urlencodedParser = bodyParser.urlencoded({ extended: false })
+
+const iam = new AWS.IAM();
+const s3 = new AWS.S3();
+
+
+// // Test IAM connection by listing users
+// iam.listUsers({}, (err, data) => {
+//     if (err) {
+//         console.log('Error connecting to IAM:', err);
+//     } else {
+//         console.log('IAM connection successful');
+//         console.log('List of IAM users:', data.Users);
+//     }
+// });
+//
+// // Test S3 connection by listing buckets
+// s3.listBuckets({}, (err, data) => {
+//     if (err) {
+//         console.log('Error connecting to S3:', err);
+//     } else {
+//         console.log('S3 connection successful');
+//         console.log('List of S3 buckets:', data.Buckets);
+//     }
+// });
 
 // Middleware to authenticate requests
 const authenticate = (req, res, next) => {
@@ -42,7 +81,7 @@ function authorize(allowedRoles) {
 
 // Register endpoint
 // User registration endpoint
-app.post('/register', async (req, res) => {
+app.post('/register', urlencodedParser, async (req, res) => {
     try {
         const { username, password, role } = req.body;
 
@@ -62,16 +101,21 @@ app.post('/register', async (req, res) => {
                 { Key: 'WMP', Value: 'app_user' },
             ],
         };
+        const addUserToGroupParams = {
+            GroupName: role,
+            UserName: username,
+        };
         let user;
         try {
             user = await iam.createUser(createUserParams).promise();
+            await iam.addUserToGroup(addUserToGroupParams).promise();
         } catch (error) {
             console.error('Error creating IAM user:', error);
             return res.status(500).json({ message: 'Error creating user' });
         }
 
         // Save the user details to MongoDB
-        const newUser = new User({ username, hashedPassword, iamUsername: user.UserName, role });
+        const newUser = new User({ username, password: hashedPassword, iamUsername: user.UserName, role });
         try {
             await newUser.save();
         } catch (error) {
@@ -96,7 +140,7 @@ app.post('/register', async (req, res) => {
 });
 
 // Login endpoint
-app.post('/login', async (req, res) => {
+app.post('/login',urlencodedParser, async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -113,7 +157,7 @@ app.post('/login', async (req, res) => {
         }
 
         // Generate a JWT token
-        const token = jwt.sign({ user: { id: user._id, username: user.username, role: user.role } }, JWT_SECRET);
+        const token = jwt.sign({ user: { id: user._id, username: user.username, role: user.role } }, JWT_SECRET_KEY);
 
         return res.status(200).json({ token });
     } catch (error) {
@@ -129,7 +173,7 @@ app.post('/upload', authenticate, authorize(['admin', 'user']), upload.single('f
 
         // Upload the file to S3 bucket
         const uploadParams = {
-            Bucket: 'your-bucket-name',
+            Bucket: BUCKET,
             Key: filename,
             Body: fs.createReadStream(path),
             ContentType: mimetype,
@@ -140,7 +184,7 @@ app.post('/upload', authenticate, authorize(['admin', 'user']), upload.single('f
         const media = new Media({
             userId: req.user.id,
             filename,
-            url: `https://your-bucket-name.s3.amazonaws.com/${filename}`,
+            url: `https://'+BUCKET+'.s3.amazonaws.com/${filename}`,
             mimetype,
             metadata: req.body.metadata,
         });
@@ -187,7 +231,7 @@ app.get('/media/:id', authenticate, authorize(['admin', 'user']), async (req, re
 
         // Download the media from S3 bucket
         const downloadParams = {
-            Bucket: 'your-bucket-name',
+            Bucket: BUCKET,
             Key: media.filename,
         };
         const fileStream = s3.getObject(downloadParams).createReadStream();
@@ -217,7 +261,7 @@ app.delete('/media/:id', authenticate, authorize(['admin', 'user']), async (req,
 
         // Delete the media from S3 bucket
         const deleteParams = {
-            Bucket: 'your-bucket-name',
+            Bucket: BUCKET,
             Key: media.filename,
         };
         await s3.deleteObject(deleteParams).promise();
