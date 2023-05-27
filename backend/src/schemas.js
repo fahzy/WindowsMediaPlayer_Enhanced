@@ -34,7 +34,9 @@ const mediaSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
-    name: String,
+    key: String,
+    uploadTime: Number,
+    filename: String,
     url: String,
     metadata: {
         type: Map,
