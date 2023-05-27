@@ -30,7 +30,9 @@ const urlencodedParser = bodyParser.urlencoded({ extended: false })
 const iam = new AWS.IAM();
 const s3 = new AWS.S3();
 
-
+// TODO: Create feature that updates authentication keys
+// TODO: Keys expires after 3 days
+// TODO: Have a register function that checks key only
 // // Test IAM connection by listing users
 // iam.listUsers({}, (err, data) => {
 //     if (err) {
@@ -79,8 +81,9 @@ function authorize(allowedRoles) {
     };
 }
 
-// Register endpoint
+
 // User registration endpoint
+//TODO: Create unit tests and integration test for all the endpoints and helper functions
 app.post('/register', urlencodedParser, async (req, res) => {
     try {
         const { username, password, role } = req.body;
@@ -131,7 +134,6 @@ app.post('/register', urlencodedParser, async (req, res) => {
 
         // Generate a JWT token
         const token = jwt.sign({ user: { id: newUser._id, username: newUser.username, role: newUser.role } }, JWT_SECRET_KEY);
-
         return res.status(200).json({ token });
     } catch (error) {
         console.error('Error registering user:', error);
@@ -167,9 +169,11 @@ app.post('/login',urlencodedParser, async (req, res) => {
 });
 
 // Upload media endpoint
-app.post('/upload', authenticate, authorize(['admin', 'user']), upload.single('file'), async (req, res) => {
+// TODO: Find away to name the files properly and add metadata
+app.post('/upload', authenticate, authorize(['admin', 'wmpUsers']), urlencodedParser, upload.single('file'), async (req, res) => {
     try {
-        const { filename, path, mimetype } = req.file;
+        const { path} = req.file;
+        const {filename, mimetype} = req.body;
 
         // Upload the file to S3 bucket
         const uploadParams = {
@@ -184,7 +188,7 @@ app.post('/upload', authenticate, authorize(['admin', 'user']), upload.single('f
         const media = new Media({
             userId: req.user.id,
             filename,
-            url: `https://'+BUCKET+'.s3.amazonaws.com/${filename}`,
+            url: `https://${BUCKET}.s3.amazonaws.com/${filename}`,
             mimetype,
             metadata: req.body.metadata,
         });
@@ -200,8 +204,8 @@ app.post('/upload', authenticate, authorize(['admin', 'user']), upload.single('f
     }
 });
 
-// Retrieve media endpoint
-app.get('/media', authenticate, authorize(['admin', 'user']), async (req, res) => {
+// Retrieve all media endpoint
+app.get('/media', authenticate, authorize(['admin', 'wmpUsers']), async (req, res) => {
     try {
         // Retrieve all media for the authenticated user
         const media = await Media.find({ userId: req.user.id });
@@ -214,7 +218,7 @@ app.get('/media', authenticate, authorize(['admin', 'user']), async (req, res) =
 });
 
 // Download media endpoint
-app.get('/media/:id', authenticate, authorize(['admin', 'user']), async (req, res) => {
+app.get('/media/:id', authenticate, authorize(['admin', 'wmpUsers']), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -244,7 +248,7 @@ app.get('/media/:id', authenticate, authorize(['admin', 'user']), async (req, re
 });
 
 // Delete media endpoint
-app.delete('/media/:id', authenticate, authorize(['admin', 'user']), async (req, res) => {
+app.delete('/media/:id', authenticate, authorize(['admin', 'wmpUsers']), async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -280,3 +284,5 @@ app.delete('/media/:id', authenticate, authorize(['admin', 'user']), async (req,
 app.listen(3000, () => {
     console.log('Server listening on port 3000');
 });
+
+module.exports = app;
