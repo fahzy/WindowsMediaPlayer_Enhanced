@@ -51,163 +51,210 @@ describe('User Registration', function()  {
     // Add more test cases for edge cases and error scenarios
 });
 
-describe('User Authentication', () => {
-
-    beforeEach(async () => {
+describe('User Authentication', function()  {
+    this.timeout(10000)
+    before(async function()  {
         // Before each test, reset the database or perform any necessary setup
+        const users = await getUsersByGroup("wmpUsers")
+        for (const user of users){
+            await deleteIAMUser(user)
+        }
         await User.deleteMany();
-        await Media.deleteMany()
+        await Media.deleteMany();
+        // Add test data if needed
 
-        request(app)
+        await request(app)
             .post('/register')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
             .send({
                 username: 'testuser',
                 password: 'testpassword',
                 role: 'wmpUsers'
-            }).end()
+            })
     })
 
-    it('should authenticate a user and return a session token', (done) => {
-        request(app)
+    it('should authenticate a user and return a session token', async function() {
+        const res = await request(app)
             .post('/login')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
             .send({
                 username: 'testuser',
                 password: 'testpassword',
             })
-            .expect(200)
-            .end((err, res) => {
-                expect(res.body).to.have.property('token');
-                done();
-            });
+
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.have.property('token');
+
     });
 
     // Add more test cases for edge cases and error scenarios
 });
 
-
-describe('File Upload', () => {
-    let authkey;
-    beforeEach(async () => {
+describe('Media Upload', function() {
+    this.timeout(25000)
+    before(async function()  {
         // Before each test, reset the database or perform any necessary setup
+        const users = await getUsersByGroup("wmpUsers")
+        for (const user of users){
+            await deleteIAMUser(user)
+        }
         await User.deleteMany();
-        await Media.deleteMany()
+        await Media.deleteMany();
 
         await request(app)
             .post('/register')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
             .send({
                 username: 'testuser',
                 password: 'testpassword',
                 role: 'wmpUsers'
-            }).end((err, res)=>{
-                authkey = res.body.token;
-                done();
             })
     });
 
-    it('should upload a file and return success message or file ID', (done) => {
-        request(app)
-            .post('/upload')
-            .set('Authorization', authKey)
+    it('should upload a file and return success message or file ID', async function() {
+        var res = await request(app)
+            .post('/login')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
             .send({
-                filename: "Heaven\'s EP",
-                mimetype: "mp3"
+                username: 'testuser',
+                password: 'testpassword',
             })
-            .attach('file', '../uploads/J. Cole - Heaven\'s EP (Official Music Video).mp4')
-            .end((err, res) => {
-                expect(res.body).to.have.property("_id")
-                expect(res.body).to.have.property("userId")
-                expect(res.body).to.have.property("filename")
-                expect(res.body).to.have.property('url');
-                expect(res.body).to.have.property("sharedWith")
-                done();
-            });
+
+        const authKey = res.body.token;
+
+        res = await request(app)
+            .post('/upload')
+            .set('Content-Type', 'multipart/form-data')
+            .set('Authorization', authKey)
+            .field('filename', "Heaven\'s EP")
+            .field( 'mimetype',"mp3")
+            .attach('file', 'C:\\Users\\lenovo\\Documents\\University\\Honours\\COS730\\A3\\WindowsMediaPlayer_Enhanced\\backend\\test\\uploads\\J. Cole - Heaven\'s EP (Official Music Video).mp4')
+            .expect(200)
+
+        expect(res.body.message).to.equals('File uploaded successfully');
+
     });
 
     // Add more test cases for edge cases and error scenarios
 });
 
-describe('File Retrieval', () => {
-    let authKey;
-    beforeEach(async () => {
+describe('All Media Retrieval', function() {
+    this.timeout(25000)
+    before(async function()  {
+
         // Before each test, reset the database or perform any necessary setup
+        const users = await getUsersByGroup("wmpUsers")
+        for (const user of users){
+            await deleteIAMUser(user)
+        }
         await User.deleteMany();
-        await Media.deleteMany()
-        await request(app)
+        await Media.deleteMany();
+
+        let res = await request(app)
             .post('/register')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
             .send({
-                username: 'testuserfile',
+                username: 'testuser',
                 password: 'testpassword',
                 role: 'wmpUsers'
             })
-            .end((err, res) =>{
-                authKey = res.body.token;
-                done();
-            })
+        const authKey = res.body.token
+
         await request(app)
             .post('/upload')
+            .set('Content-Type', 'multipart/form-data')
             .set('Authorization', authKey)
-            .send({
-                filename: "Heaven\'s EP",
-                mimetype: "mp3"
-            })
-            .attach('file', '../uploads/J. Cole - Heaven\'s EP (Official Music Video).mp4')
-            .end()
+            .field('filename', "Heaven\'s EP")
+            .field( 'mimetype',"mp3")
+            .attach('file', 'C:\\Users\\lenovo\\Documents\\University\\Honours\\COS730\\A3\\WindowsMediaPlayer_Enhanced\\backend\\test\\uploads\\J. Cole - Heaven\'s EP (Official Music Video).mp4')
+            .expect(200)
 
     });
 
-    it('should retrieve a list of all the files uploaded by the user', (done) => {
-        request(app)
-            .set('Authorization', authKey)
-            .expect(200)
+    it('should retrieve a list of all the files uploaded by the user', async function()  {
+
+        var res = await request(app)
+            .post('/login')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
+            .send({
+                username: 'testuser',
+                password: 'testpassword',
+            })
+        const authKey = res.body.token
+
+        res = await request.agent(app)
             .get('/media')
-            .end((err, res) => {
-                expect(res.body.message).to.equals('File uploaded successfully');
-                done();
-            });
+            .set('Authorization', authKey)
+            .expect(200)
+
+        expect(res.body[0]).to.have.property("_id")
+        expect(res.body[0]).to.have.property("userId")
+        expect(res.body[0]).to.have.property("filename")
+        expect(res.body[0]).to.have.property('url');
+        expect(res.body[0]).to.have.property("sharedWith")
+
     });
 
     // Add more test cases for edge cases and error scenarios
 });
 
-describe('File Deletion', () => {
-    let authKey;
-    beforeEach(async () => {
+describe('Media Deletion', function() {
+    this.timeout(25000)
+    before(async function()  {
+
         // Before each test, reset the database or perform any necessary setup
+        const users = await getUsersByGroup("wmpUsers")
+        for (const user of users){
+            await deleteIAMUser(user)
+        }
         await User.deleteMany();
-        await Media.deleteMany()
-        await request(app)
+        await Media.deleteMany();
+
+        let res = await request(app)
             .post('/register')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
             .send({
-                username: 'testuserfile',
+                username: 'testuser',
                 password: 'testpassword',
                 role: 'wmpUsers'
             })
-            .end((err, res) =>{
-                authKey = res.body.token;
-                done();
-            })
+        const authKey = res.body.token
+
         await request(app)
             .post('/upload')
+            .set('Content-Type', 'multipart/form-data')
             .set('Authorization', authKey)
-            .send({
-                filename: "Heaven\'s EP",
-                mimetype: "mp3"
-            })
-            .attach('file', '../uploads/J. Cole - Heaven\'s EP (Official Music Video).mp4')
-            .end()
+            .field('filename', "Heaven\'s EP")
+            .field( 'mimetype',"mp3")
+            .attach('file', 'C:\\Users\\lenovo\\Documents\\University\\Honours\\COS730\\A3\\WindowsMediaPlayer_Enhanced\\backend\\test\\uploads\\J. Cole - Heaven\'s EP (Official Music Video).mp4')
+            .expect(200)
 
     });
 
 
-    it('should delete a file and return success message', (done) => {
-        request(app)
-            .delete(`/file/Heaven's EP`)
+    it('should delete a file and return success message', async function() {
+        var res = await request(app)
+            .post('/login')
+            .set('Content-Type', 'application/x-www-form-urlencoded')
+            .send({
+                username: 'testuser',
+                password: 'testpassword',
+            })
+        const authKey = res.body.token
+
+        res = await request.agent(app)
+            .get('/media')
             .set('Authorization', authKey)
             .expect(200)
-            .end((err, res) => {
-                expect(res.body.message).to.equal('File deleted successfully');
-                done();
-            });
+
+        const mediaId = res.body[0]._id
+
+        res = await request(app)
+            .delete(`/media/${mediaId}`)
+            .set('Authorization', authKey)
+            .expect(200)
+
+        expect(res.body.message).to.equal('Media deleted successfully');
     });
 
     // Add more test cases for edge cases and error scenarios
