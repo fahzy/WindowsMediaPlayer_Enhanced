@@ -280,6 +280,39 @@ app.delete('/media/:id', authenticate, authorize(['admin', 'wmpUsers']), async (
     }
 });
 
+// Stream video file
+app.get('/stream/:id', authenticate, authorize(['admin', 'wmpUsers']),async (req, res) => {
+    const { id } = req.params;
+
+    // Find the media by ID
+    const media = await Media.findById(id);
+    if (!media) {
+        return res.status(404).json({ message: 'Media not found' });
+    }
+
+    // // Check if the authenticated user has access to the media
+    // if (media.userId.toString() !== req.user.id.toString()) {
+    //     return res.status(403).json({ message: 'Access denied' });
+    // }
+
+    // Download the media from S3 bucket
+    const downloadParams = {
+        Bucket: BUCKET,
+        Key: media.filename,
+    };
+    const fileStream = s3.getObject(downloadParams).createReadStream();
+    res.setHeader('Content-Type', 'video/mp4')
+    fileStream.pipe(res);
+
+});
+
+// Start the server
+app.listen(3001, () => {
+    console.log('Server is running on http://localhost:3001');
+});
+
+
+
 // Start the server
 app.listen(3000, () => {
     console.log('Server listening on port 3000');
