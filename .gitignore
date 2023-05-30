@@ -38,3 +38,9 @@ build/
 .DS_Store
 /desktopClient/src/main/resources/music/
 /desktopClient/src/main/resources/images/
+
+### Node Js ###
+config.js
+
+### Java ###
+config.properties
