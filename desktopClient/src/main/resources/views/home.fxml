@@ -51,7 +51,7 @@
 <?import javafx.scene.media.MediaView?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane fx:id="scenePane" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fahzycoding.windowsmediaplayer_enhanced.HomeController">
+<BorderPane fx:id="scenePane" maxHeight="600.0" maxWidth="800.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.fahzycoding.windowsmediaplayer_enhanced.HomeController">
    <top>
     <MenuBar minHeight="-Infinity" minWidth="-Infinity" prefWidth="708.0" BorderPane.alignment="CENTER">
       <menus>
