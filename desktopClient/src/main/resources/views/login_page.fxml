@@ -25,7 +25,15 @@
     </Tab>
     <Tab text="Sign up">
       <content>
-        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+               <children>
+                  <Button fx:id="registerBtn" layoutX="274.0" layoutY="280.0" mnemonicParsing="false" onAction="#register" text="Sign Up" />
+                  <PasswordField fx:id="registerPw" layoutX="226.0" layoutY="227.0" />
+                  <Label layoutX="170.0" layoutY="231.0" text="Password" />
+                  <TextField fx:id="registerUser" layoutX="226.0" layoutY="186.0" />
+                  <Label layoutX="170.0" layoutY="190.0" text="Username" />
+                  <Label layoutX="278.0" layoutY="139.0" text="Register" />
+               </children></AnchorPane>
       </content>
     </Tab>
   </tabs>

@@ -29,10 +29,7 @@ import javafx.util.Duration;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.ResourceBundle;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 import static java.lang.Math.floor;
 //import static jdk.internal.logger.DefaultLoggerFinder.SharedLoggers.system;
@@ -64,9 +61,16 @@ public class HomeController implements Initializable {
     private TimerTask task;
     private boolean running = false;
     Stage stage;
+    private ApiCommunicator client;
+    private Properties properties;
+
+    private String authToken;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+
+
+
         songs = new ArrayList<File>();
         directory = new File("./desktopClient/src/main/resources/music");
         files = directory.listFiles();
@@ -124,7 +128,7 @@ public class HomeController implements Initializable {
             // Logging out of the main application
             stage = (Stage) scenePane.getScene().getWindow();
             System.out.println("You successfully logged out");
-            // TODO: Remove credentials from the application
+            this.authToken = "";
             // Closes the main application
             stage.close();
 
@@ -255,5 +259,15 @@ public class HomeController implements Initializable {
          });
 //         visualizer.setMediaPlayer((mediaPlayer));
      }
+
+    public void setClient(ApiCommunicator client){
+        this.client = client;
+    }
+    public void setProperties(Properties properties){
+        this.properties = properties;
+    }
+    public void setAuthToken(String authToken){
+        this.authToken = authToken;
+    }
 
 }

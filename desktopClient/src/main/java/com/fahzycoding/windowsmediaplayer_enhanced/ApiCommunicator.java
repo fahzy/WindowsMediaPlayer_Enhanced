@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public class ApiCommunicator {
     private final String baseUrl;
-    private final OkHttpClient httpClient;
+    private OkHttpClient httpClient;
 
     public ApiCommunicator(String baseUrl) {
         this.baseUrl = baseUrl;
@@ -102,4 +102,9 @@ public class ApiCommunicator {
             return response.body().string();
         }
     }
+
+    public void setHttpClient(OkHttpClient client){
+        this.httpClient = client;
+    }
+
 }
