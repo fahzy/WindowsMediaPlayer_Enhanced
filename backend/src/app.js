@@ -307,15 +307,8 @@ app.get('/stream/:id', authenticate, authorize(['admin', 'wmpUsers']),async (req
 });
 
 // Start the server
-app.listen(3001, () => {
-    console.log('Server is running on http://localhost:3001');
-});
-
-
-
-// Start the server
-app.listen(3000, () => {
-    console.log('Server listening on port 3000');
+app.listen(port=3000, () => {
+    console.log(`Server listening on port ${port}`);
 });
 
 module.exports = app;

@@ -19,6 +19,8 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 
 import com.fahzycoding.windowsmediaplayer_enhanced.ApiCommunicator;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class LoginController implements Initializable {
     @FXML
@@ -32,10 +34,15 @@ public class LoginController implements Initializable {
     private Stage stage;
     private Scene scene;
     private Parent root;
-
+    private Notifications notifications;
     private ApiCommunicator client;
     private Properties properties;
     private String authToken;
+    private Stage currentStage;
+
+    public void setCurrentStage(Stage stage){
+        this.currentStage = stage;
+    }
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         Properties properties = new Properties();
@@ -47,30 +54,57 @@ public class LoginController implements Initializable {
             System.exit(1);
             return;
         }
-        String SERVER_URL = properties.getProperty("server_url");
 
+
+        String SERVER_URL = properties.getProperty("server_url");
         client = new ApiCommunicator(SERVER_URL);
+
     }
 
     public void login(ActionEvent event) throws IOException {
 
+        notifications = new Notifications((Stage) usernameField.getScene().getWindow());
+
         String username = usernameField.getText();
         String password = passwordField.getText();
 
-        authToken = client.loginUser(username, password);
+        if (username.isEmpty()) {
+            notifications.showNotification("Please enter a username!");
+        }else {
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
-        root = loader.load();
+            Response res = client.loginUser(username, password);
+//            ResponseBody resBody = res.body();
+            System.out.println("body" + res.isSuccessful());
+            if (res.isSuccessful()) {
+                // Successful login
 
-        HomeController home_page = loader.getController();
-        home_page.setAuthToken(authToken);
-        home_page.setClient(client);
-        home_page.setProperties(properties);
+                // Clear the fields for the next login attempt
+                usernameField.clear();
+                passwordField.clear();
 
-        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
+                root = loader.load();
+
+                HomeController home_page = loader.getController();
+                home_page.setAuthToken(authToken);
+                home_page.setClient(client);
+                home_page.setProperties(properties);
+
+                stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                scene = new Scene(root);
+                stage.setScene(scene);
+                stage.show();
+            } else {
+                System.out.println("Stats: "+res.isSuccessful());
+//                ResponseBody responseBody = res.body();
+//                String resString = resBody.string();
+
+                System.out.println("Signup failed with status code: " + res.code());
+                System.out.println("Error message: " + res.message());
+                notifications.showNotification(res.message());
+                res.body().close();
+            }
+        }
 
     }
 
@@ -79,7 +113,7 @@ public class LoginController implements Initializable {
         String username = registerUser.getText();
         String password = registerPw.getText();
 
-        authToken = client.registerUser(username, password);
+//        authToken = client.registerUser(username, password);
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
         root = loader.load();
@@ -102,5 +136,9 @@ public class LoginController implements Initializable {
 
     public void setProperties(Properties properties){
         this.properties = properties;
+    }
+
+    public void setNotifications(Notifications notifications){
+        this.notifications = notifications;
     }
 }

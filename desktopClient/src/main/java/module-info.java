@@ -10,6 +10,7 @@ module com.fahzycoding.windowsmediaplayer_enhanced {
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
     requires okhttp3;
+    requires java.desktop;
 
     opens com.fahzycoding.windowsmediaplayer_enhanced to javafx.fxml;
     exports com.fahzycoding.windowsmediaplayer_enhanced;
