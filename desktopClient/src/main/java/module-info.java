@@ -11,6 +11,7 @@ module com.fahzycoding.windowsmediaplayer_enhanced {
     requires eu.hansolo.tilesfx;
     requires okhttp3;
     requires java.desktop;
+    requires com.google.gson;
 
     opens com.fahzycoding.windowsmediaplayer_enhanced to javafx.fxml;
     exports com.fahzycoding.windowsmediaplayer_enhanced;

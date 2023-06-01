@@ -18,6 +18,10 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+
 import com.fahzycoding.windowsmediaplayer_enhanced.ApiCommunicator;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
@@ -73,8 +77,8 @@ public class LoginController implements Initializable {
         }else {
 
             Response res = client.loginUser(username, password);
-//            ResponseBody resBody = res.body();
-            System.out.println("body" + res.isSuccessful());
+            Gson gson = new Gson();
+            JsonObject jsonObject = gson.fromJson(res.body().charStream(), JsonObject.class);
             if (res.isSuccessful()) {
                 // Successful login
 
@@ -85,7 +89,10 @@ public class LoginController implements Initializable {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
                 root = loader.load();
 
+
                 HomeController home_page = loader.getController();
+
+                authToken = jsonObject.get("token").getAsString();
                 home_page.setAuthToken(authToken);
                 home_page.setClient(client);
                 home_page.setProperties(properties);
@@ -95,14 +102,14 @@ public class LoginController implements Initializable {
                 stage.setScene(scene);
                 stage.show();
             } else {
-                System.out.println("Stats: "+res.isSuccessful());
-//                ResponseBody responseBody = res.body();
-//                String resString = resBody.string();
 
+                usernameField.clear();
+                passwordField.clear();
+
+                String errorMess = jsonObject.get("message").getAsString();
                 System.out.println("Signup failed with status code: " + res.code());
-                System.out.println("Error message: " + res.message());
-                notifications.showNotification(res.message());
-                res.body().close();
+                System.out.println("Error message: " + errorMess);
+                notifications.showNotification(errorMess);
             }
         }
 
@@ -110,24 +117,52 @@ public class LoginController implements Initializable {
 
     public void register(ActionEvent event) throws IOException {
 
+        notifications = new Notifications((Stage) usernameField.getScene().getWindow());
+
         String username = registerUser.getText();
         String password = registerPw.getText();
 
+        if (username.isEmpty()) {
+            notifications.showNotification("Please enter a username!");
+        }else if(password.isEmpty()){
+                notifications.showNotification("Please enter a password!");
+        }else {
+
+            Response res = client.registerUser(username, password);
+            Gson gson = new Gson();
+            JsonObject jsonObject = gson.fromJson(res.body().charStream(), JsonObject.class);
+            if (res.isSuccessful()) {
+                usernameField.clear();
+                passwordField.clear();
+
 //        authToken = client.registerUser(username, password);
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
-        root = loader.load();
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/home.fxml"));
+                root = loader.load();
 
-        HomeController home_page = loader.getController();
-        home_page.setAuthToken(authToken);
-        home_page.setClient(client);
-        home_page.setProperties(properties);
+                HomeController home_page = loader.getController();
 
-        stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
+                authToken = jsonObject.get("token").getAsString();
+                System.out.println(authToken);
+                home_page.setAuthToken(authToken);
+                home_page.setClient(client);
+                home_page.setProperties(properties);
 
+                stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                scene = new Scene(root);
+                stage.setScene(scene);
+                stage.show();
+            }else{
+                usernameField.clear();
+                passwordField.clear();
+
+                String errorMess = jsonObject.get("message").getAsString();
+                System.out.println("Signup failed with status code: " + res.code());
+                System.out.println("Error message: " + errorMess);
+                notifications.showNotification(errorMess);
+            }
+            res.close();
+        }
     }
 
     public void setClient(ApiCommunicator client){

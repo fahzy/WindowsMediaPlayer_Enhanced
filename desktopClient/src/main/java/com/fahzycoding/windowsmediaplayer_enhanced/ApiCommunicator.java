@@ -57,9 +57,8 @@ public class ApiCommunicator {
                 .post(requestBody)
                 .build();
 
-        try (Response response = httpClient.newCall(request).execute()) {
-            return response;
-        }
+        Response response = httpClient.newCall(request).execute();
+        return response;
     }
 
     private Response sendHttpGetRequest(String endpointUrl, String authToken) throws IOException {
@@ -69,9 +68,8 @@ public class ApiCommunicator {
                 .get()
                 .build();
 
-        try (Response response = httpClient.newCall(request).execute()) {
-            return response;
-        }
+        Response response = httpClient.newCall(request).execute();
+        return response;
     }
 
     private Response sendHttpDeleteRequest(String endpointUrl, String authToken) throws IOException {
@@ -81,9 +79,8 @@ public class ApiCommunicator {
                 .delete()
                 .build();
 
-        try (Response response = httpClient.newCall(request).execute()) {
-            return response;
-        }
+        Response response = httpClient.newCall(request).execute();
+        return response;
     }
 
     private Response sendHttpPostRequestWithFile(String endpointUrl, String authToken, File file) throws IOException {
@@ -98,9 +95,8 @@ public class ApiCommunicator {
                 .post(requestBody)
                 .build();
 
-        try (Response response = httpClient.newCall(request).execute()) {
-            return response;
-        }
+        Response response = httpClient.newCall(request).execute();
+        return response;
     }
 
     public void setHttpClient(OkHttpClient client){
