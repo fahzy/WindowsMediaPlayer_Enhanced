@@ -31,7 +31,7 @@ public class ApiCommunicatorTest {
         apiCommunicator.setHttpClient(httpClient);
 
         // Test the loginUser method
-        String response = apiCommunicator.loginUser("username", "password");
+        Response response = apiCommunicator.loginUser("username", "password");
 
         // Verify the HTTP request and assert the response
         verify(httpClient, times(1)).newCall(any());
@@ -59,7 +59,7 @@ public class ApiCommunicatorTest {
         apiCommunicator.setHttpClient(httpClient);
 
         // Test the registerUser method
-        String response = apiCommunicator.registerUser("username", "password");
+        Response response = apiCommunicator.registerUser("username", "password");
 
         // Verify the HTTP request and assert the response
         verify(httpClient, times(1)).newCall(any());
@@ -89,7 +89,7 @@ public class ApiCommunicatorTest {
         // Test the uploadMedia method
         String authToken = "token123";
         File file = new File("path/to/file");
-        String response = apiCommunicator.uploadMedia(authToken, file);
+        Response response = apiCommunicator.uploadMedia(authToken, file);
 
         // Verify the HTTP request and assert the response
         verify(httpClient, times(1)).newCall(any());
@@ -119,7 +119,7 @@ public class ApiCommunicatorTest {
         // Test the getMedia method
         String authToken = "token123";
         String mediaId = "123";
-        String response = apiCommunicator.getMedia(authToken, mediaId);
+        Response response = apiCommunicator.getMedia(authToken, mediaId);
 
         // Verify the HTTP request and assert the response
         verify(httpClient, times(1)).newCall(any());
@@ -147,7 +147,7 @@ public class ApiCommunicatorTest {
         // Test the getMedia method
         String authToken = "token123";
         String mediaId = "123";
-        String response = apiCommunicator.getMedia(authToken, mediaId);
+        Response response = apiCommunicator.getMedia(authToken, mediaId);
 
         // Verify the HTTP request and assert the response
         verify(httpClient, times(1)).newCall(any());
