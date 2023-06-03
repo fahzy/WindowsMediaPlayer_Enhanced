@@ -297,6 +297,11 @@ public class HomeController implements Initializable {
      }
 
      private void mediaExecution(Media media){
+         if (mediaPlayer.getStatus().equals(MediaPlayer.Status.PLAYING)){
+             mediaPlayer.stop();
+             hideImage();
+//             mediaPlayer.
+         }
          mediaPlayer = new MediaPlayer(media);
          media.getMetadata().addListener(new MapChangeListener<String, Object>() {
              @Override
@@ -322,6 +327,7 @@ public class HomeController implements Initializable {
                  }
              }
          });
+         // TODO: If media is video show media and hide image, vice versa
          visualizer.setMediaPlayer((mediaPlayer));
          playpauseMedia();
      }
