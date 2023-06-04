@@ -28,6 +28,10 @@ public class DatabaseManager {
 
 
         setSERVER_URL(url);
+        login();
+        createUsersTable();
+        createMusicLibraryTable();
+        logout();
     }
 
     public void createUsersTable() {
@@ -114,10 +118,16 @@ public class DatabaseManager {
             statement.setString(2, title);
             statement.setString(3, fileDirectory);
 
-            statement.executeUpdate();
+            int rowsAffected = statement.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Media file inserted successfully");
+                return true;
+            } else {
+                System.err.println("Duplicate entry. Song already exists in the database.");
+                return false;
+            }
 //            statement.close();
-            System.out.println("Media file inserted successfully");
-            return true;
+
         } catch (SQLException e) {
             System.err.println("Error inserting media file: " + e.getMessage());
             return false;

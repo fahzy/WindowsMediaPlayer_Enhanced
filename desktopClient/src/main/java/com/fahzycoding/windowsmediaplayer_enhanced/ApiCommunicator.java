@@ -3,9 +3,17 @@ package com.fahzycoding.windowsmediaplayer_enhanced;
 import okhttp3.*;
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 public class ApiCommunicator {
     private final String baseUrl;
+
+    public OkHttpClient getHttpClient() {
+        return httpClient;
+    }
+
     private OkHttpClient httpClient;
 
     public ApiCommunicator(String baseUrl) {
@@ -45,9 +53,9 @@ public class ApiCommunicator {
         return sendHttpDeleteRequest(endpointUrl, authToken);
     }
 
-    public Response streamMedia(String authToken, String mediaId) throws IOException {
-        String endpointUrl = baseUrl + "/media/stream/" + mediaId;
-        return sendHttpGetRequest(endpointUrl, authToken);
+    public Request streamMedia(String authToken, String mediaId) throws IOException {
+        String endpointUrl = baseUrl + "/stream/" + mediaId;
+        return sendHttpGetRequestStream(endpointUrl, authToken);
     }
 
     private Response sendHttpPostRequest(String endpointUrl, String payload) throws IOException {
@@ -70,6 +78,15 @@ public class ApiCommunicator {
 
         Response response = httpClient.newCall(request).execute();
         return response;
+    }private Request sendHttpGetRequestStream(String endpointUrl, String authToken) throws IOException {
+        Request request = new Request.Builder()
+                .url(endpointUrl)
+                .header("Authorization", authToken)
+                .get()
+                .build();
+
+//        Response response = httpClient.newCall(request).execute();
+        return request;
     }
 
     private Response sendHttpDeleteRequest(String endpointUrl, String authToken) throws IOException {
@@ -86,7 +103,9 @@ public class ApiCommunicator {
     private Response sendHttpPostRequestWithFile(String endpointUrl, String authToken, File file) throws IOException {
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("file", file.getName(), RequestBody.create(MediaType.parse("application/octet-stream"), file))
+                .addFormDataPart("file", URLDecoder.decode( file.getName(), StandardCharsets.UTF_8), RequestBody.create(MediaType.parse("application/octet-stream"), file))
+                .addFormDataPart("filename", URLDecoder.decode(file.getName(), StandardCharsets.UTF_8))
+                .addFormDataPart("mimetype", Files.probeContentType(file.toPath()))
                 .build();
 
         Request request = new Request.Builder()

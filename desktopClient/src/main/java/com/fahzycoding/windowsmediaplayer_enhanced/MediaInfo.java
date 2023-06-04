@@ -15,6 +15,16 @@ public class MediaInfo {
         this.backedUp = backedUp;
         this.filetype = filetype;
     }
+
+    public String getMediaId() {
+        return mediaId;
+    }
+
+    public void setMediaId(String mediaId) {
+        this.mediaId = mediaId;
+    }
+
+    private String mediaId;
     private String userId;
     private String directory;
     private String filename;
