@@ -1,5 +1,12 @@
 package com.fahzycoding.windowsmediaplayer_enhanced;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+//import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -15,6 +22,8 @@ import javafx.stage.Stage;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
@@ -23,9 +32,9 @@ import com.google.gson.JsonObject;
 
 
 import com.fahzycoding.windowsmediaplayer_enhanced.ApiCommunicator;
+import com.fahzycoding.windowsmediaplayer_enhanced.DatabaseManager;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-
 public class LoginController implements Initializable {
     @FXML
     TextField usernameField;
@@ -40,9 +49,13 @@ public class LoginController implements Initializable {
     private Parent root;
     private Notifications notifications;
     private ApiCommunicator client;
+    private DatabaseManager db_manager;
     private Properties properties;
     private String authToken;
     private Stage currentStage;
+    private String SECRET_KEY;
+    private String SERVER_URL;
+    private String DB_LOCATION;
 
     public void setCurrentStage(Stage stage){
         this.currentStage = stage;
@@ -60,9 +73,12 @@ public class LoginController implements Initializable {
         }
 
 
-        String SERVER_URL = properties.getProperty("server_url");
+        SERVER_URL = properties.getProperty("server_url");
+        SECRET_KEY = properties.getProperty("secret_key");
+        DB_LOCATION = properties.getProperty("internal_db");
+//        System.out.println(DB_LOCATION);
         client = new ApiCommunicator(SERVER_URL);
-
+        db_manager = new DatabaseManager(DB_LOCATION);
     }
 
     public void login(ActionEvent event) throws IOException {
@@ -92,10 +108,28 @@ public class LoginController implements Initializable {
 
                 HomeController home_page = loader.getController();
 
+                db_manager.login();
                 authToken = jsonObject.get("token").getAsString();
+
+                // Decode the JWT
+                DecodedJWT jwt = JWT.require(Algorithm.HMAC256(SECRET_KEY))
+                        .build()
+                        .verify(authToken);
+
+                Object userObject = jwt.getClaim("user").as(Object.class);
+                String jsonString = userObject.toString();
+
+                JsonParser jsonParser = new JsonParser();
+                JsonElement jsonElement = jsonParser.parse(jsonString);
+                JsonObject jsonObject2 = jsonElement.getAsJsonObject();
+
+                home_page.setUsername(jsonObject2.get("username").getAsString());
+                home_page.setPassword(jsonObject2.get("id").getAsString());
                 home_page.setAuthToken(authToken);
                 home_page.setClient(client);
                 home_page.setProperties(properties);
+                home_page.setDB_manager(db_manager);
+                home_page.setNotifications(notifications);
 
                 stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
                 scene = new Scene(root);
@@ -144,9 +178,33 @@ public class LoginController implements Initializable {
 
                 authToken = jsonObject.get("token").getAsString();
                 System.out.println(authToken);
+
+                // Decode the JWT
+                DecodedJWT jwt = JWT.require(Algorithm.HMAC256(SECRET_KEY))
+                        .build()
+                        .verify(authToken);
+
+                Object userObject = jwt.getClaim("user").as(Object.class);
+                String jsonString = userObject.toString();
+
+                JsonParser jsonParser = new JsonParser();
+                JsonElement jsonElement = jsonParser.parse(jsonString);
+                JsonObject jsonObject2 = jsonElement.getAsJsonObject();
+
+                String un = jsonObject2.get("username").getAsString();
+                String pw = jsonObject2.get("id").getAsString();
+
+                home_page.setUsername(un);
+                home_page.setPassword(pw);
+
                 home_page.setAuthToken(authToken);
                 home_page.setClient(client);
                 home_page.setProperties(properties);
+                home_page.setDB_manager(db_manager);
+                home_page.setNotifications(notifications);
+
+                db_manager.login();
+                db_manager.createUser(un, pw);
 
                 stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
                 scene = new Scene(root);

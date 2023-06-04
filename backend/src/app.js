@@ -172,14 +172,14 @@ app.post('/login',urlencodedParser, async (req, res) => {
 // TODO: Find away to name the files properly and add metadata
 app.post('/upload', authenticate, authorize(['admin', 'wmpUsers']), urlencodedParser, upload.single('file'), async (req, res) => {
     try {
-        const { path} = req.file;
+        const file  = req.file;
         const {filename, mimetype} = req.body;
 
         // Upload the file to S3 bucket
         const uploadParams = {
             Bucket: BUCKET,
             Key: filename,
-            Body: fs.createReadStream(path),
+            Body: fs.createReadStream(file.path),
             ContentType: mimetype,
         };
         await s3.upload(uploadParams).promise();
@@ -195,7 +195,7 @@ app.post('/upload', authenticate, authorize(['admin', 'wmpUsers']), urlencodedPa
         await media.save();
 
         // Remove the temporary file
-        fs.unlinkSync(path);
+        fs.unlinkSync(file.path);
 
         return res.status(200).json({ message: 'File uploaded successfully' });
     } catch (error) {
